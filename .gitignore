@@ -1,4 +1,15 @@
-venv/
+__pycache__/
 .venv/
 env/
-__pycache__/
+venv/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+*.egg-info/
+dist/
+build/
+*.log
+test_response.json
+out_heatmap.png
