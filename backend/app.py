@@ -1,21 +1,38 @@
+import os
+import base64
+
+import cv2
+import gdown
+import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+from tensorflow.keras.models import load_model
 from tf_keras_vis.gradcam import Gradcam
 from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
 from tf_keras_vis.utils.scores import CategoricalScore
-import matplotlib.pyplot as plt
-import cv2
-import base64
-# ... (your other imports like Flask, numpy, etc.) ...
-import numpy as np
-import tensorflow as tf
-from PIL import Image
-import io
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
 
 # Initialize the Flask application
 app = Flask(__name__)
 # Enable Cross-Origin Resource Sharing (CORS) to allow frontend and backend to communicate
 CORS(app)
+
+MODEL_PATH = os.environ.get("MODEL_PATH", "lung_cancer_model.h5")
+GOOGLE_DRIVE_MODEL_ID = "1rZJKni5b7smx0yOf9x2VtkfTPjYMmK-v"
+print(f"[startup] Resolved MODEL_PATH: {os.path.abspath(MODEL_PATH)}")
+
+
+def ensure_model_exists(model_path: str) -> None:
+    if os.path.exists(model_path):
+        return
+    url = f"https://drive.google.com/uc?id={GOOGLE_DRIVE_MODEL_ID}"
+    gdown.download(url, model_path, quiet=False)
+
+
+def load_trained_model(model_path: str):
+    ensure_model_exists(model_path)
+    return load_model(model_path)
 
 
 @app.route('/', methods=['GET'])
@@ -24,10 +41,11 @@ def home():
 
 # Load your trained model
 try:
-    model = tf.keras.models.load_model("lung_cancer_model.h5")
+    model = load_trained_model(MODEL_PATH)
     class_names = ['Benign', 'Malignant', 'Normal']
 except Exception as e:
     model = None
+    class_names = ['Benign', 'Malignant', 'Normal']
     print(f"Error loading model: {e}")
 
 # Define the prediction endpoint
@@ -35,6 +53,9 @@ except Exception as e:
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    if model is None:
+        return jsonify({'error': 'Model is not available on server'}), 500
+
     # Check if a file is present in the request
     if 'file' not in request.files:
         return jsonify({'error': 'No file part in the request'}), 400
