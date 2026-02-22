@@ -1,10 +1,6 @@
-tensorflow-cpu==2.13.0
-Pillow
-numpy
-Flask
-flask-cors
-matplotlib
-opencv-python
-tf-keras-vis
+flask
 gunicorn
+tensorflow-cpu==2.13.0
+numpy
+pillow
 gdown
